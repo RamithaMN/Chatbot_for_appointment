@@ -61,21 +61,33 @@ class MockLLM(BaseLLM):
         has_time = re.search(r'\b\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)\b', prompt)
         has_date = re.search(r'\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}(?:st|nd|rd|th)?(?:,\s*\d{4})?\b', prompt) or re.search(r'\b\d{1,2}(?:st|nd|rd|th)?\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\b', prompt)
         
+        # Extract the actual user message from the prompt first
+        user_message = ""
+        if "User message:" in prompt:
+            user_message = prompt.split("User message:")[-1].strip().lower()
+        else:
+            # Fallback: look for the last line that might be the user message
+            lines = prompt.split('\n')
+            for line in reversed(lines):
+                if line.strip() and not line.startswith('System:') and not line.startswith('Assistant:') and not line.startswith('Human:') and not line.startswith('TODAY IS:') and not line.startswith('NEXT MONDAY IS:'):
+                    user_message = line.strip().lower()
+                    break
+        
+        # Check if user is declining or ending conversation (check this BEFORE appointment logic)
+        if user_message.strip() in ['no', 'no thanks', 'no thank you', "i'm good", "that's all", 'nothing else', 'nope', 'thats all']:
+            return "Thank you for using our dental appointment service! Have a great day and we look forward to seeing you at your appointment! 😊"
+        
+        # Check if user wants to reschedule/postpone/change appointment (BEFORE new appointment logic)
+        if any(word in user_message for word in ['reschedule', 'postpone', 'change', 'modify', 'move', 'different time', 'different date', 'change date', 'change time']):
+            return "I'd be happy to help you reschedule your appointment. What would be a better date and time for you? We're open Monday-Friday 8AM-6PM, and Saturday 9AM-2PM."
+        
         if any(word in prompt_lower for word in ["appointment", "schedule", "book", "reservation"]):
             # Always use step-by-step flow for appointment booking
             # The chatbot_chain.py will generate the final appointment summary with actual user details
             
-            # Extract the actual user message from the prompt
-            user_message = ""
-            if "User message:" in prompt:
-                user_message = prompt.split("User message:")[-1].strip().lower()
-            else:
-                # Fallback: look for the last line that might be the user message
-                lines = prompt.split('\n')
-                for line in reversed(lines):
-                    if line.strip() and not line.startswith('System:') and not line.startswith('Assistant:') and not line.startswith('Human:') and not line.startswith('TODAY IS:') and not line.startswith('NEXT MONDAY IS:'):
-                        user_message = line.strip().lower()
-                        break
+            # Check if user is requesting receptionist callback
+            if any(phrase in user_message for phrase in ['receptionist', 'call me', 'call back', 'callback', 'phone call', 'staff call']):
+                return "Wonderful! Our receptionist will call you shortly at the number you provided to confirm your appointment. Is there anything else I can help you with?"
             
             # Check if user is confirming their appointment
             if user_message.strip() == 'confirm' or user_message.strip() == 'yes':
@@ -126,6 +138,8 @@ class MockLLM(BaseLLM):
                                 parsed_date = parsed_date.replace(year=2025)
                                 if parsed_date.strftime('%A') == 'Sunday':
                                     return f"I'm sorry, but our clinic is closed on Sundays. {parsed_date.strftime('%B %d, %Y')} is not available for appointments. We're open Monday-Friday from 8:00 AM to 6:00 PM, and Saturday from 9:00 AM to 2:00 PM. Would you like to choose a different day for your appointment?"
+                                elif parsed_date.strftime('%A') == 'Saturday':
+                                    return "Great! What time would you prefer for your appointment? We have availability at 9:00 AM, 10:00 AM, 11:00 AM, 12:00 PM, and 1:00 PM (Saturday hours: 9:00 AM - 2:00 PM)."
                                 break
                             except ValueError:
                                 continue
@@ -136,6 +150,11 @@ class MockLLM(BaseLLM):
                 if 'sunday' in user_message:
                     return "I'm sorry, but our clinic is closed on Sundays. We're open Monday-Friday from 8:00 AM to 6:00 PM, and Saturday from 9:00 AM to 2:00 PM. Would you like to choose a different day for your appointment?"
                 
+                # Check if user mentioned "saturday" explicitly
+                if 'saturday' in user_message:
+                    return "Great! What time would you prefer for your appointment? We have availability at 9:00 AM, 10:00 AM, 11:00 AM, 12:00 PM, and 1:00 PM (Saturday hours: 9:00 AM - 2:00 PM)."
+                
+                # Default weekday availability
                 return "Great! What time would you prefer for your appointment? We have availability at 9:00 AM, 10:00 AM, 2:00 PM, 3:00 PM, and 4:30 PM."
             elif "am" in user_message or "pm" in user_message or ":" in user_message:
                 # Validate if the requested time is within business hours
@@ -158,7 +177,7 @@ class MockLLM(BaseLLM):
                         return f"I apologize, but our clinic hours are Monday-Friday 8:00 AM - 6:00 PM, and Saturday 9:00 AM - 2:00 PM. The time you requested ({time_match.group(0)}) is outside our business hours. Would you like to choose a time during our operating hours? We have availability at 9:00 AM, 10:00 AM, 2:00 PM, 3:00 PM, and 4:30 PM."
                 
                 return "Excellent! What's your contact phone number?"
-            elif "phone" in user_message or "contact" in user_message or re.search(r'\d{3}[-.]?\d{3}[-.]?\d{4}', user_message) or re.search(r'\d{10}', user_message):
+            elif "phone" in user_message or "contact" in user_message or re.search(r'\d{3}[-.]?\d{3}[-.]?\d{4}', user_message) or re.search(r'\d{6,}', user_message):
                 # Return a generic confirmation message - the chatbot_chain.py will add the actual appointment summary with real details
                 return "Perfect! I have all your details. Your appointment is confirmed for checkup."
             else:

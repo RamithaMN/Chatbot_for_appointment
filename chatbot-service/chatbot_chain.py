@@ -583,8 +583,11 @@ User message: {message}"""
         is_business_hours_only = any(indicator in response.lower() for indicator in business_hours_only_indicators)
         is_appointment_scheduling = any(indicator in response.lower() for indicator in appointment_scheduling_indicators)
         
-        # Apply date replacement for appointment scheduling, skip for business hours only
-        if is_appointment_scheduling or not is_business_hours_only:
+        # Check if this is a reschedule/postpone response - treat like business hours (no specific dates)
+        is_reschedule_response = any(word in response.lower() for word in ['reschedule', 'postpone', 'better date and time'])
+        
+        # Apply date replacement for appointment scheduling, skip for business hours only and reschedule responses
+        if (is_appointment_scheduling or not is_business_hours_only) and not is_reschedule_response:
             # For appointment scheduling, use appropriate week's Monday-Friday dates
             if is_appointment_scheduling:
                 # Calculate all possible dates for comprehensive coverage
@@ -746,9 +749,9 @@ User message: {message}"""
         has_specific_appointment_details = (
             # Check if user provided a name (capitalized words pattern)
             re.search(r'\b[A-Z][a-z]+\s+[A-Z][a-z]+\b', input_text) or
-            # Check if user provided a phone number
+            # Check if user provided a phone number (support 6+ digits)
             re.search(r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b', input_text) or
-            re.search(r'\b\d{10}\b', input_text) or
+            re.search(r'\b\d{6,}\b', input_text) or
             # Check if user provided a specific time
             re.search(r'\b\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)\b', input_text) or
             # Check if user provided a specific date
@@ -841,9 +844,9 @@ User message: {message}"""
                                 if time_match:
                                     appointment_time_str = time_match.group(0).upper()
                         
-                        # Extract phone
+                        # Extract phone (support 6+ digit phone numbers)
                         if not appointment_phone:
-                            phone_match = re.search(r'\d{10}', msg_content) or re.search(r'\d{3}[-.]?\d{3}[-.]?\d{4}', msg_content)
+                            phone_match = re.search(r'\d{6,}', msg_content) or re.search(r'\d{3}[-.]?\d{3}[-.]?\d{4}', msg_content)
                             if phone_match:
                                 appointment_phone = phone_match.group(0)
             

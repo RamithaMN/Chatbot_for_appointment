@@ -184,6 +184,45 @@ ChatBot_Dental/
 └── README.md                   # This file
 ```
 
+## 🗄️ Database Setup
+
+### Run DB Scripts
+
+The application uses PostgreSQL with a comprehensive schema for user management, appointments, and chat analytics.
+
+**Database files:**
+- `database/schema.sql` - Complete database schema with tables, indexes, and views
+- `database/seed.sql` - Demo data including users, appointments, and chat sessions
+
+**Required tables:**
+- `users` - User profiles and authentication
+- `appointments` - Appointment scheduling with tenant support
+- `chat_sessions` - Conversation tracking and analytics
+- `chat_messages` - Individual message storage
+- `audit_log` - Security and compliance logging
+
+**Key indexes:**
+- `appointments(tenant_id, start_at)` - Multi-tenant appointment queries
+- `chat_messages(session_id, created_at)` - Message history optimization
+
+**Initialize database:**
+```bash
+# Connect to PostgreSQL
+psql -U postgres -d dental_chatbot
+
+# Run schema
+\i database/schema.sql
+
+# Run seed data
+\i database/seed.sql
+```
+
+**Demo data includes:**
+- 6 users (2 patients, 2 dentists, 1 admin, 1 staff)
+- 5 sample appointments
+- 2 chat sessions with 13 messages
+- 4 audit log entries
+
 ## 🐛 Troubleshooting
 
 ### Services Won't Start
@@ -349,7 +388,7 @@ MIT License
 
 ---
 
-**Built with ❤️ using Node.js, Python, LangChain, and Next.js**
+
 
 **Get started in 3 commands:**
 ```bash

@@ -39,23 +39,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     // Check for stored token on mount
-    const storedToken = localStorage.getItem('dental_chatbot_token');
+    const storedToken = localStorage.getItem('access_token');
     const storedUser = localStorage.getItem('dental_chatbot_user');
     
     if (storedToken && storedUser) {
       setToken(storedToken);
       setUser(JSON.parse(storedUser));
-      apiClient.setToken(storedToken);
     }
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const response = await apiClient.login({
-        username,
-        password,
-      });
+      const response = await apiClient.login(username, password);
 
       // Decode the token to get user info (in a real app, you'd decode the JWT properly)
       const userInfo: User = {
@@ -64,10 +60,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       setToken(response.access_token);
       setUser(userInfo);
-      apiClient.setToken(response.access_token);
 
       // Store in localStorage
-      localStorage.setItem('dental_chatbot_token', response.access_token);
+      localStorage.setItem('access_token', response.access_token);
       localStorage.setItem('dental_chatbot_user', JSON.stringify(userInfo));
 
       return true;
@@ -82,8 +77,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     setToken(null);
     setUser(null);
-    apiClient.setToken(null);
-    localStorage.removeItem('dental_chatbot_token');
+    localStorage.removeItem('access_token');
     localStorage.removeItem('dental_chatbot_user');
   };
 

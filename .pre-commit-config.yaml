@@ -1,0 +1,141 @@
+# Pre-commit hooks configuration
+# Install: pip install pre-commit
+# Setup: pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--unsafe]
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
+      - id: no-commit-to-branch
+        args: [--branch, main, --branch, master]
+
+  # Python formatting with Black
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+      - id: black
+        language_version: python3.11
+        files: ^chatbot-service/
+
+  # Python linting with flake8
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        files: ^chatbot-service/
+        args:
+          - --max-line-length=120
+          - --extend-ignore=E203,W503
+          - --exclude=.git,__pycache__,venv,env,.venv
+
+  # Python import sorting
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        files: ^chatbot-service/
+        args:
+          - --profile=black
+          - --line-length=120
+
+  # Python security checks
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.6
+    hooks:
+      - id: bandit
+        files: ^chatbot-service/
+        args: ["-c", "pyproject.toml"]
+        additional_dependencies: ["bandit[toml]"]
+
+  # JavaScript/TypeScript formatting with Prettier
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        files: \.(js|jsx|ts|tsx|json|css|scss|md|yml|yaml)$
+        exclude: ^(backend/node_modules|frontend/node_modules|frontend/.next)/
+
+  # ESLint for JavaScript/TypeScript
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v8.56.0
+    hooks:
+      - id: eslint
+        files: \.(js|jsx|ts|tsx)$
+        exclude: ^(backend/node_modules|frontend/node_modules|frontend/.next)/
+        args: [--fix, --max-warnings=0]
+        additional_dependencies:
+          - eslint@8.56.0
+          - eslint-config-prettier@9.1.0
+          - eslint-plugin-react@7.33.2
+
+  # Dockerfile linting
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+        args: [--ignore, DL3008, --ignore, DL3013]
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.38.0
+    hooks:
+      - id: markdownlint
+        args: [--fix]
+
+  # YAML linting
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.33.0
+    hooks:
+      - id: yamllint
+        args: [-c=.yamllint.yml]
+
+  # Secrets detection
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: package-lock.json
+
+  # Shell script linting
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+        args: [--severity=warning]
+
+# Configure default settings
+default_language_version:
+  python: python3.11
+  node: 18.17.0
+
+# Exclude paths
+exclude: |
+  (?x)^(
+    node_modules/|
+    .next/|
+    build/|
+    dist/|
+    .venv/|
+    venv/|
+    env/|
+    __pycache__/|
+    \.egg-info/|
+    \.git/|
+    coverage/
+  )
+
